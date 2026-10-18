@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f4f5f2">
+  <title>Menuly — Read any menu in your language</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="navbar">
+    <a class="brand" href="/">menuly<span>.</span></a>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <h1>Read any menu,<br><em>in your language.</em></h1>
+      <p class="subtitle">Photograph a menu and get it back translated, with the original layout and prices intact.</p>
+    </section>
+
+    <section class="workspace">
+      <div class="controls card">
+        <div class="field">
+          <span class="field-label" id="langLabel">Translate into</span>
+          <div class="segmented" role="radiogroup" aria-labelledby="langLabel">
+            <span class="thumb" aria-hidden="true"></span>
+            <input type="radio" name="language" id="lang-hin" value="hin_Deva" checked>
+            <label for="lang-hin">Hindi</label>
+            <input type="radio" name="language" id="lang-mar" value="mar_Deva">
+            <label for="lang-mar">Marathi</label>
+          </div>
+        </div>
+
+        <div class="drop" id="drop">
+          <label class="drop-prompt" for="menuFile">
+            <span class="upload-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>
+            </span>
+            <strong>Add a menu photo</strong>
+            <span>Drop it here or browse · JPG, PNG, WebP up to 15 MB</span>
+            <input id="menuFile" type="file" accept="image/jpeg,image/png,image/webp">
+          </label>
+
+          <div class="preview-wrap hidden" id="previewWrap">
+            <img id="originalPreview" alt="Original menu preview">
+            <span class="scan" aria-hidden="true"></span>
+            <button class="text-button" id="removeImage" type="button" aria-label="Remove photo">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <button id="translateBtn" class="primary-button" type="button" disabled>
+          <span class="btn-label">Translate menu</span>
+          <span class="spinner" aria-hidden="true"></span>
+        </button>
+        <p class="status" id="status" role="status" aria-live="polite"></p>
+      </div>
+
+      <div class="result-panel card">
+        <div class="result-heading">
+          <h2>Translated menu</h2>
+          <span class="result-badge" id="resultBadge">Waiting for photo</span>
+        </div>
+
+        <div class="empty-state" id="emptyState">
+          <div class="empty-symbol" aria-hidden="true">अ<span>A</span></div>
+          <p>Your translation will appear here.</p>
+        </div>
+
+        <div class="result-content hidden" id="resultContent">
+          <div class="view-toggle" id="viewToggle" role="tablist" aria-label="Menu version" data-view="translated">
+            <span class="thumb" aria-hidden="true"></span>
+            <button type="button" role="tab" data-view="translated" aria-selected="true">Translated</button>
+            <button type="button" role="tab" data-view="original" aria-selected="false">Original</button>
+          </div>
+
+          <div class="viewer" id="viewer" data-view="translated">
+            <img id="translatedImage" alt="Translated menu">
+            <img id="compareOriginal" alt="Original menu">
+          </div>
+
+          <button id="downloadBtn" class="secondary-button" type="button">Download image</button>
+
+          <h3>Extracted text</h3>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Original</th><th>Translation</th></tr></thead>
+              <tbody id="textRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>Made for food lovers, everywhere.</footer>
+  </main>
+
+  <script src="/script.js"></script>
+</body>
+</html>
