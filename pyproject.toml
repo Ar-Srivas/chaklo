@@ -5,10 +5,15 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "indictranstoolkit>=1.1.1",
     "ipykernel>=7.4.0",
     "matplotlib>=3.11.2",
     "paddleocr>=3.7.0",
     "paddlepaddle>=3.3.1",
     "pandas>=3.0.6",
     "pillow>=13.0.0",
+    "sacremoses>=0.2.0",
+    "sentencepiece>=0.2.2",
+    "torch>=2.14.1",
+    "transformers>=5.20.1",
 ]
