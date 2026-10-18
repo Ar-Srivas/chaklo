@@ -16,6 +16,9 @@ const emptyState = $("emptyState");
 const resultBadge = $("resultBadge");
 const downloadButton = $("downloadBtn");
 const textRows = $("textRows");
+const nutritionCards = $("nutritionCards");
+const nutritionState = $("nutritionState");
+const allergenCards = $("allergenCards");
 const viewToggle = $("viewToggle");
 const viewer = $("viewer");
 const promptLabel = drop.querySelector(".drop-prompt");
@@ -91,6 +94,72 @@ function setLoading(loading) {
   drop.classList.toggle("busy", loading);
   translateButton.disabled = loading || !selectedFile;
   translateButton.querySelector(".btn-label").textContent = loading ? "Translating…" : "Translate menu";
+  if (loading) {
+    nutritionState.textContent = "Loading nutrition estimates…";
+    nutritionCards.replaceChildren();
+    allergenCards.replaceChildren();
+  }
+}
+
+function renderNutrition(items) {
+  nutritionCards.replaceChildren();
+  allergenCards.replaceChildren();
+  const available = items.filter((item) => item.nutrition?.status === "estimated");
+  nutritionState.textContent = available.length
+    ? "Values are approximate and may not reflect the restaurant's recipe or portion."
+    : "Nutrition estimates are unavailable for the detected dishes.";
+
+  items.forEach((item) => {
+    const nutrition = item.nutrition || {};
+    if (nutrition.status === "not_applicable") return;
+
+    const card = document.createElement("article");
+    card.className = "nutrition-card";
+    const title = document.createElement("h4");
+    title.textContent = item.original;
+    card.appendChild(title);
+
+    if (nutrition.status === "estimated" && nutrition.data) {
+      const values = document.createElement("div");
+      values.className = "nutrition-values";
+      [
+        ["Calories", nutrition.data.calories],
+        ["Protein", nutrition.data.protein],
+        ["Carbohydrates", nutrition.data.carbohydrates],
+        ["Total fat", nutrition.data.fat],
+      ].forEach(([label, nutrient]) => {
+        const value = document.createElement("span");
+        const labelElement = document.createElement("strong");
+        labelElement.textContent = label;
+        value.append(labelElement, document.createElement("br"));
+        value.append(`${nutrient.value} ${nutrient.unit}`);
+        values.appendChild(value);
+      });
+      card.appendChild(values);
+
+      const serving = document.createElement("p");
+      serving.className = "nutrition-meta";
+      serving.textContent = `${nutrition.data.serving} Source: ${nutrition.data.source}.`;
+      card.appendChild(serving);
+    } else {
+      const unavailable = document.createElement("p");
+      unavailable.className = "nutrition-meta";
+      unavailable.textContent = nutrition.message || "No estimate available.";
+      card.appendChild(unavailable);
+    }
+
+    nutritionCards.appendChild(card);
+
+    const allergenCard = document.createElement("article");
+    allergenCard.className = "allergen-card";
+    const allergenTitle = document.createElement("strong");
+    allergenTitle.textContent = item.original;
+    const allergenMessage = document.createElement("p");
+    allergenMessage.textContent = item.allergen_awareness?.message ||
+      "Allergen information was not assessed.";
+    allergenCard.append(allergenTitle, allergenMessage);
+    allergenCards.appendChild(allergenCard);
+  });
 }
 
 translateButton.addEventListener("click", async () => {
@@ -125,6 +194,7 @@ translateButton.addEventListener("click", async () => {
       row.append(originalCell, translatedCell);
       textRows.appendChild(row);
     });
+    renderNutrition(data.items);
 
     emptyState.classList.add("hidden");
     // re-trigger the entrance animation on every new result

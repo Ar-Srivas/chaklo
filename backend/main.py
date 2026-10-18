@@ -7,9 +7,12 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.concurrency import run_in_threadpool
 from PIL import Image, UnidentifiedImageError
 
 from backend.src.config import LANGUAGE_OPTIONS
+from backend.src.menu_parser import looks_like_price
+from backend.src.nutrition import NutritionClient
 from backend.src.pipeline import MenulyPipeline
 
 
@@ -28,6 +31,8 @@ app.add_middleware(
 
 _pipeline = None
 _pipeline_lock = threading.Lock()
+_nutrition_client = None
+_nutrition_lock = threading.Lock()
 
 
 def get_pipeline() -> MenulyPipeline:
@@ -39,6 +44,17 @@ def get_pipeline() -> MenulyPipeline:
                 _pipeline = MenulyPipeline()
 
     return _pipeline
+
+
+def get_nutrition_client() -> NutritionClient:
+    global _nutrition_client
+
+    if _nutrition_client is None:
+        with _nutrition_lock:
+            if _nutrition_client is None:
+                _nutrition_client = NutritionClient()
+
+    return _nutrition_client
 
 
 def image_data_url(image_bytes: bytes) -> str:
@@ -77,15 +93,44 @@ async def translate_menu(
     except (RuntimeError, ValueError) as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
 
-    return {
-        "image": image_data_url(result.image_bytes),
-        "items": [
+    dish_names = [
+        item.original_text
+        for item in result.items
+        if not looks_like_price(item.original_text)
+    ]
+    nutrition_by_name = await run_in_threadpool(
+        get_nutrition_client().estimate_many,
+        dish_names,
+    )
+
+    items = []
+    for item in result.items:
+        if looks_like_price(item.original_text):
+            nutrition = {
+                "status": "not_applicable",
+                "message": "Nutrition is not estimated for price values.",
+            }
+        else:
+            nutrition = nutrition_by_name[item.original_text].as_dict()
+
+        items.append(
             {
                 "original": item.original_text,
                 "translated": item.translated_text,
+                "nutrition": nutrition,
+                "allergen_awareness": {
+                    "status": "not_assessed",
+                    "message": (
+                        "No restaurant recipe ingredients were matched. "
+                        "This is not an allergen-free determination."
+                    ),
+                },
             }
-            for item in result.items
-        ],
+        )
+
+    return {
+        "image": image_data_url(result.image_bytes),
+        "items": items,
     }
 
 

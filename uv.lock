@@ -1408,6 +1408,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "fastapi" },
+    { name = "httpx" },
     { name = "indictranstoolkit" },
     { name = "ipykernel" },
     { name = "matplotlib" },
@@ -1426,6 +1427,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115.0" },
+    { name = "httpx", specifier = ">=0.27.0" },
     { name = "indictranstoolkit", specifier = ">=1.1.1" },
     { name = "ipykernel", specifier = ">=7.4.0" },
     { name = "matplotlib", specifier = ">=3.11.2" },
