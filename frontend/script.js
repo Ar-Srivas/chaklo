@@ -315,6 +315,6 @@ downloadButton.addEventListener("click", () => {
   if (!translatedImageUrl) return;
   const link = document.createElement("a");
   link.href = translatedImageUrl;
-  link.download = "menuly-translated.png";
+  link.download = "chaklo-translated.png";
   link.click();
 });

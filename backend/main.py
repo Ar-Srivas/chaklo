@@ -14,7 +14,7 @@ from PIL import Image, UnidentifiedImageError
 from backend.src.config import LANGUAGE_OPTIONS
 from backend.src.menu_parser import looks_like_price
 from backend.src.nutrition import NutritionClient
-from backend.src.pipeline import MenulyPipeline
+from backend.src.pipeline import ChakloPipeline
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -22,7 +22,7 @@ FRONTEND_DIR = ROOT / "frontend"
 MAX_UPLOAD_BYTES = 15 * 1024 * 1024
 ALLOWED_CONTENT_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
-app = FastAPI(title="Menuly API")
+app = FastAPI(title="Chaklo API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -40,13 +40,13 @@ class NutritionRequest(BaseModel):
     dish_name: str = Field(min_length=1, max_length=200)
 
 
-def get_pipeline() -> MenulyPipeline:
+def get_pipeline() -> ChakloPipeline:
     global _pipeline
 
     if _pipeline is None:
         with _pipeline_lock:
             if _pipeline is None:
-                _pipeline = MenulyPipeline()
+                _pipeline = ChakloPipeline()
 
     return _pipeline
 

@@ -16,7 +16,7 @@ class PipelineResult:
     items: list
 
 
-class MenulyPipeline:
+class ChakloPipeline:
     def __init__(self):
         self.ocr = MenuOCR()
         self.translator = IndicTranslator()

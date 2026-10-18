@@ -1,6 +1,6 @@
-# Menuly
+# Chaklo
 
-Menuly extracts text from a menu photo, translates it into Hindi or Marathi,
+Chaklo extracts text from a menu photo, translates it into Hindi or Marathi,
 and renders the translated menu while preserving prices and approximate layout.
 It can also show optional Spoonacular dish-name nutrition estimates.
 
