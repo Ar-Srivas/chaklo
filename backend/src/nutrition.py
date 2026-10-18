@@ -4,15 +4,25 @@ import os
 import threading
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import httpx
+from dotenv import load_dotenv
 
 
 SPOONACULAR_URL = "https://api.spoonacular.com/recipes/guessNutrition"
 DEFAULT_TIMEOUT_SECONDS = 6.0
 DEFAULT_CACHE_SECONDS = 15 * 60
 NEGATIVE_CACHE_SECONDS = 2 * 60
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+
+def load_environment(env_path: Path | None = None) -> None:
+    load_dotenv(env_path or PROJECT_ROOT / ".env")
+
+
+load_environment()
 
 
 @dataclass(frozen=True)

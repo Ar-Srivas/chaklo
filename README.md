@@ -15,7 +15,8 @@ Copy-Item .env.example .env
 ```
 
 Open `.env` and set `SPOONACULAR_API_KEY` to your own Spoonacular API key.
-The key is read only by the backend and must not be placed in frontend files.
+The backend loads this `.env` file during import/startup; the key is read only
+by the backend and must not be placed in frontend files.
 If it is omitted, translation still works and nutrition is reported as
 unavailable.
 
@@ -23,7 +24,7 @@ unavailable.
 
 ```powershell
 cd C:\ProjectFiles\hacktoberfest
-uv run uvicorn backend.main:app --reload --env-file .env
+uv run uvicorn backend.main:app --reload
 ```
 
 Open <http://127.0.0.1:8000>.
@@ -44,8 +45,9 @@ Multipart form fields:
 - `file`: JPEG, PNG, or WebP menu image, up to 15 MB
 - `language`: `hin_Deva` or `mar_Deva`
 
-The response includes the translated image, extracted items, and per-item
-`nutrition` and `allergen_awareness` status objects. Nutrition uses
+The response includes the translated image and extracted items. Nutrition is
+requested separately only after the user selects a dish using
+`POST /api/nutrition` with JSON `{"dish_name": "..."}`. Nutrition uses
 Spoonacular's documented `GET /recipes/guessNutrition` endpoint with the OCR
 dish name passed as `title`.
 

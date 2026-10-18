@@ -1,5 +1,7 @@
 const MAX_BYTES = 15 * 1024 * 1024;
 const TYPES = ["image/jpeg", "image/png", "image/webp"];
+const PRICE = /^\s*(₹|Rs\.?|INR|\$|€|£)?\s*\d/;
+const CHEVRON = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
 
 const $ = (id) => document.getElementById(id);
 const fileInput = $("menuFile");
@@ -16,9 +18,6 @@ const emptyState = $("emptyState");
 const resultBadge = $("resultBadge");
 const downloadButton = $("downloadBtn");
 const textRows = $("textRows");
-const nutritionCards = $("nutritionCards");
-const nutritionState = $("nutritionState");
-const allergenCards = $("allergenCards");
 const viewToggle = $("viewToggle");
 const viewer = $("viewer");
 const promptLabel = drop.querySelector(".drop-prompt");
@@ -26,6 +25,8 @@ const promptLabel = drop.querySelector(".drop-prompt");
 let selectedFile = null;
 let translatedImageUrl = null;
 let previewUrl = null;
+let session = 0;               // bumps on every translation so stale nutrition replies are ignored
+let nutritionCache = new Map();
 
 const selectedLanguage = () => document.querySelector('input[name="language"]:checked').value;
 
@@ -34,6 +35,7 @@ function setStatus(message, isError = false) {
   statusText.classList.toggle("error", isError);
 }
 
+/* ---------- Photo handling ---------- */
 function setFile(file) {
   if (!file) return;
   if (!TYPES.includes(file.type)) return setStatus("Use a JPG, PNG or WebP photo.", true);
@@ -70,13 +72,32 @@ fileInput.addEventListener("change", () => setFile(fileInput.files[0]));
 removeButton.addEventListener("click", clearFile);
 
 ["dragenter", "dragover"].forEach((type) =>
-  drop.addEventListener(type, (e) => { e.preventDefault(); drop.classList.add("dragging"); })
+  drop.addEventListener(type, () => drop.classList.add("dragging"))
 );
 ["dragleave", "drop"].forEach((type) =>
-  drop.addEventListener(type, (e) => { e.preventDefault(); drop.classList.remove("dragging"); })
+  drop.addEventListener(type, () => drop.classList.remove("dragging"))
 );
-drop.addEventListener("drop", (e) => setFile(e.dataTransfer.files[0]));
+// Drop anywhere on the page (and never let the browser navigate away to the image)
+window.addEventListener("dragover", (e) => e.preventDefault());
+window.addEventListener("drop", (e) => {
+  e.preventDefault();
+  setFile(e.dataTransfer.files[0]);
+});
+// Paste a screenshot straight from the clipboard
+document.addEventListener("paste", (e) => {
+  const image = [...(e.clipboardData?.files || [])].find((f) => f.type.startsWith("image/"));
+  if (image) setFile(image);
+});
 
+document.querySelectorAll('input[name="language"]').forEach((radio) =>
+  radio.addEventListener("change", () => {
+    if (!resultContent.classList.contains("hidden") && selectedFile) {
+      setStatus("Language changed. Press Translate menu to update.");
+    }
+  })
+);
+
+/* ---------- Result view ---------- */
 function setView(view) {
   viewToggle.dataset.view = view;
   viewer.dataset.view = view;
@@ -94,74 +115,155 @@ function setLoading(loading) {
   drop.classList.toggle("busy", loading);
   translateButton.disabled = loading || !selectedFile;
   translateButton.querySelector(".btn-label").textContent = loading ? "Translating…" : "Translate menu";
-  if (loading) {
-    nutritionState.textContent = "Loading nutrition estimates…";
-    nutritionCards.replaceChildren();
-    allergenCards.replaceChildren();
-  }
 }
 
-function renderNutrition(items) {
-  nutritionCards.replaceChildren();
-  allergenCards.replaceChildren();
-  const available = items.filter((item) => item.nutrition?.status === "estimated");
-  nutritionState.textContent = available.length
-    ? "Values are approximate and may not reflect the restaurant's recipe or portion."
-    : "Nutrition estimates are unavailable for the detected dishes.";
+/* ---------- Dishes + inline nutrition ---------- */
+function renderDishes(items) {
+  textRows.replaceChildren();
+  items.forEach((item, i) => {
+    const row = document.createElement("tr");
+    row.style.setProperty("--i", Math.min(i, 20));
+    const original = document.createElement("td");
+    const translated = document.createElement("td");
+    const action = document.createElement("td");
+    action.className = "action";
+    original.textContent = item.original;
+    translated.textContent = item.translated;
 
-  items.forEach((item) => {
-    const nutrition = item.nutrition || {};
-    if (nutrition.status === "not_applicable") return;
-
-    const card = document.createElement("article");
-    card.className = "nutrition-card";
-    const title = document.createElement("h4");
-    title.textContent = item.original;
-    card.appendChild(title);
-
-    if (nutrition.status === "estimated" && nutrition.data) {
-      const values = document.createElement("div");
-      values.className = "nutrition-values";
-      [
-        ["Calories", nutrition.data.calories],
-        ["Protein", nutrition.data.protein],
-        ["Carbohydrates", nutrition.data.carbohydrates],
-        ["Total fat", nutrition.data.fat],
-      ].forEach(([label, nutrient]) => {
-        const value = document.createElement("span");
-        const labelElement = document.createElement("strong");
-        labelElement.textContent = label;
-        value.append(labelElement, document.createElement("br"));
-        value.append(`${nutrient.value} ${nutrient.unit}`);
-        values.appendChild(value);
-      });
-      card.appendChild(values);
-
-      const serving = document.createElement("p");
-      serving.className = "nutrition-meta";
-      serving.textContent = `${nutrition.data.serving} Source: ${nutrition.data.source}.`;
-      card.appendChild(serving);
+    if (PRICE.test(item.original)) {
+      row.classList.add("price");           // prices and numbers have no nutrition
     } else {
-      const unavailable = document.createElement("p");
-      unavailable.className = "nutrition-meta";
-      unavailable.textContent = nutrition.message || "No estimate available.";
-      card.appendChild(unavailable);
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "nutrition-btn";
+      button.setAttribute("aria-expanded", "false");
+      button.setAttribute("aria-label", `Nutrition estimate for ${item.original}`);
+      button.innerHTML = `Nutrition ${CHEVRON}`;
+      button.addEventListener("click", () => toggleDetail(row, item, button));
+      action.appendChild(button);
     }
-
-    nutritionCards.appendChild(card);
-
-    const allergenCard = document.createElement("article");
-    allergenCard.className = "allergen-card";
-    const allergenTitle = document.createElement("strong");
-    allergenTitle.textContent = item.original;
-    const allergenMessage = document.createElement("p");
-    allergenMessage.textContent = item.allergen_awareness?.message ||
-      "Allergen information was not assessed.";
-    allergenCard.append(allergenTitle, allergenMessage);
-    allergenCards.appendChild(allergenCard);
+    row.append(original, translated, action);
+    textRows.appendChild(row);
   });
 }
 
+function closeAll() {
+  textRows.querySelectorAll("tr.detail.open").forEach((d) => {
+    d.classList.remove("open");
+    d.inert = true;
+  });
+  textRows.querySelectorAll(".nutrition-btn").forEach((b) => b.setAttribute("aria-expanded", "false"));
+}
+
+function buildDetail(row) {
+  const detail = document.createElement("tr");
+  detail.className = "detail";
+  detail.inert = true;
+  detail.innerHTML = '<td colspan="3"><div class="detail-grid"><div class="detail-inner"><div class="detail-body"></div></div></div></td>';
+  row.after(detail);
+  return detail;
+}
+
+function toggleDetail(row, item, button) {
+  const wasOpen = button.getAttribute("aria-expanded") === "true";
+  closeAll();
+  if (wasOpen) return;
+
+  let detail = row.nextElementSibling;
+  if (!detail?.classList.contains("detail")) detail = buildDetail(row);
+  button.setAttribute("aria-expanded", "true");
+  detail.inert = false;
+  void detail.offsetWidth;                  // commit the collapsed state so the open animates
+  detail.classList.add("open");
+  loadNutrition(item, detail.querySelector(".detail-body"));
+}
+
+function showSkeleton(body) {
+  const grid = document.createElement("div");
+  grid.className = "nutrition-values";
+  for (let i = 0; i < 4; i++) {
+    const s = document.createElement("div");
+    s.className = "stat skel";
+    grid.appendChild(s);
+  }
+  body.replaceChildren(grid);
+}
+
+async function loadNutrition(item, body) {
+  const key = item.original;
+  if (nutritionCache.has(key)) return renderNutrition(body, nutritionCache.get(key));
+
+  const current = session;
+  showSkeleton(body);
+  try {
+    const response = await fetch("/api/nutrition", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dish_name: item.original }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || "Nutrition lookup failed.");
+    if (current !== session) return;
+    nutritionCache.set(key, data);
+    renderNutrition(body, data);
+  } catch (error) {
+    if (current !== session) return;
+    const message = document.createElement("p");
+    message.className = "detail-error";
+    message.textContent = (error instanceof Error ? error.message : "Nutrition lookup failed.") + " ";
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.className = "link-button";
+    retry.textContent = "Try again";
+    retry.addEventListener("click", () => loadNutrition(item, body));
+    message.appendChild(retry);
+    body.replaceChildren(message);
+  }
+}
+
+function renderNutrition(body, result) {
+  const nutrition = result.nutrition;
+  const nodes = [];
+
+  if (nutrition.status === "estimated" && nutrition.data) {
+    const d = nutrition.data;
+    const grid = document.createElement("div");
+    grid.className = "nutrition-values";
+    [["Calories", d.calories], ["Protein", d.protein], ["Carbs", d.carbohydrates], ["Fat", d.fat]]
+      .forEach(([label, n]) => {
+        const stat = document.createElement("div");
+        stat.className = "stat";
+        const value = document.createElement("b");
+        value.textContent = n.value;
+        const unit = document.createElement("small");
+        unit.textContent = n.unit;
+        value.appendChild(unit);
+        const name = document.createElement("span");
+        name.textContent = label;
+        stat.append(value, name);
+        grid.appendChild(stat);
+      });
+    const meta = document.createElement("p");
+    meta.className = "detail-meta";
+    meta.textContent = `${d.serving} Source: ${d.source}.`;
+    nodes.push(grid, meta);
+  } else {
+    const message = document.createElement("p");
+    message.className = "detail-meta";
+    message.textContent = nutrition.message || "No estimate is available for this dish.";
+    nodes.push(message);
+  }
+
+  if (result.allergen_awareness?.message) {
+    const note = document.createElement("p");
+    note.className = "detail-meta allergen-note";
+    note.textContent = result.allergen_awareness.message;
+    nodes.push(note);
+  }
+  body.replaceChildren(...nodes);
+}
+
+/* ---------- Translate ---------- */
 translateButton.addEventListener("click", async () => {
   if (!selectedFile) return;
 
@@ -169,6 +271,8 @@ translateButton.addEventListener("click", async () => {
   formData.append("file", selectedFile);
   formData.append("language", selectedLanguage());
 
+  session++;
+  nutritionCache = new Map();
   setLoading(true);
   setStatus("Reading the menu and translating it…");
   resultBadge.textContent = "Translating";
@@ -182,23 +286,10 @@ translateButton.addEventListener("click", async () => {
     translatedImage.src = data.image;
     translatedImageUrl = data.image;
     setView("translated");
-
-    textRows.replaceChildren();
-    data.items.forEach((item, i) => {
-      const row = document.createElement("tr");
-      row.style.setProperty("--i", Math.min(i, 20));
-      const originalCell = document.createElement("td");
-      const translatedCell = document.createElement("td");
-      originalCell.textContent = item.original;
-      translatedCell.textContent = item.translated;
-      row.append(originalCell, translatedCell);
-      textRows.appendChild(row);
-    });
-    renderNutrition(data.items);
+    renderDishes(data.items);
 
     emptyState.classList.add("hidden");
-    // re-trigger the entrance animation on every new result
-    resultContent.classList.add("hidden");
+    resultContent.classList.add("hidden");   // re-trigger the entrance animation
     void resultContent.offsetWidth;
     resultContent.classList.remove("hidden");
 

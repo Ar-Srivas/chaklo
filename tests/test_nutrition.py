@@ -1,6 +1,6 @@
 import httpx
 
-from backend.src.nutrition import NutritionClient
+from backend.src.nutrition import NutritionClient, load_environment
 
 
 def make_client(handler):
@@ -80,3 +80,13 @@ def test_rate_limit_and_quota_are_reported():
         result = client.estimate("Limited dish")
 
         assert result.status == "rate_limited"
+
+
+def test_api_key_is_loaded_from_env_file(tmp_path, monkeypatch):
+    env_file = tmp_path / ".env"
+    env_file.write_text("SPOONACULAR_API_KEY=file-key\n", encoding="utf-8")
+    monkeypatch.delenv("SPOONACULAR_API_KEY", raising=False)
+
+    load_environment(env_file)
+
+    assert NutritionClient().api_key == "file-key"

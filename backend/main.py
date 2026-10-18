@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.concurrency import run_in_threadpool
+from pydantic import BaseModel, Field
 from PIL import Image, UnidentifiedImageError
 
 from backend.src.config import LANGUAGE_OPTIONS
@@ -33,6 +34,10 @@ _pipeline = None
 _pipeline_lock = threading.Lock()
 _nutrition_client = None
 _nutrition_lock = threading.Lock()
+
+
+class NutritionRequest(BaseModel):
+    dish_name: str = Field(min_length=1, max_length=200)
 
 
 def get_pipeline() -> MenulyPipeline:
@@ -93,44 +98,48 @@ async def translate_menu(
     except (RuntimeError, ValueError) as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
 
-    dish_names = [
-        item.original_text
-        for item in result.items
-        if not looks_like_price(item.original_text)
-    ]
-    nutrition_by_name = await run_in_threadpool(
-        get_nutrition_client().estimate_many,
-        dish_names,
-    )
-
     items = []
     for item in result.items:
-        if looks_like_price(item.original_text):
-            nutrition = {
-                "status": "not_applicable",
-                "message": "Nutrition is not estimated for price values.",
-            }
-        else:
-            nutrition = nutrition_by_name[item.original_text].as_dict()
-
         items.append(
             {
                 "original": item.original_text,
                 "translated": item.translated_text,
-                "nutrition": nutrition,
-                "allergen_awareness": {
-                    "status": "not_assessed",
-                    "message": (
-                        "No restaurant recipe ingredients were matched. "
-                        "This is not an allergen-free determination."
-                    ),
-                },
             }
         )
 
     return {
         "image": image_data_url(result.image_bytes),
         "items": items,
+    }
+
+
+@app.post("/api/nutrition")
+async def estimate_nutrition(request: NutritionRequest) -> dict:
+    if looks_like_price(request.dish_name):
+        return {
+            "nutrition": {
+                "status": "not_applicable",
+                "message": "Nutrition is not estimated for price values.",
+            },
+            "allergen_awareness": {
+                "status": "not_assessed",
+                "message": "A price does not identify a dish or its ingredients.",
+            },
+        }
+
+    result = await run_in_threadpool(
+        get_nutrition_client().estimate,
+        request.dish_name,
+    )
+    return {
+        "nutrition": result.as_dict(),
+        "allergen_awareness": {
+            "status": "not_assessed",
+            "message": (
+                "No restaurant recipe ingredients were verified. "
+                "This is not an allergen-free determination."
+            ),
+        },
     }
 
 

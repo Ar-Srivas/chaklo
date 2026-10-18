@@ -40,9 +40,7 @@ def render_translated_image(image, items):
         cv2.INPAINT_TELEA,
     )
 
-    canvas = Image.fromarray(
-        cv2.cvtColor(cleaned, cv2.COLOR_BGR2RGB)
-    )
+    canvas = Image.fromarray(cv2.cvtColor(cleaned, cv2.COLOR_BGR2RGB))
 
     draw = ImageDraw.Draw(canvas)
 

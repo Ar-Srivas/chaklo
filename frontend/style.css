@@ -141,7 +141,7 @@ h1 em { font-style: italic; color: var(--accent); }
   cursor: pointer;
 }
 .drop-prompt strong { font-size: 15px; font-weight: 600; }
-.drop-prompt span { color: var(--muted); font-size: 13px; line-height: 1.5; max-width: 220px; }
+.drop-prompt > span:not(.upload-icon) { color: var(--muted); font-size: 13px; line-height: 1.5; max-width: 220px; }
 .drop-prompt input { display: none; }
 .upload-icon {
   display: grid; place-items: center;
@@ -245,22 +245,37 @@ h1 em { font-style: italic; color: var(--accent); }
 .viewer[data-view="original"] #translatedImage { opacity: 0; transform: scale(.985); pointer-events: none; }
 
 .result-content h3 { margin: 32px 0 10px; font-size: 15px; font-weight: 600; }
-.nutrition-section, .allergen-section { margin-top: 32px; }
-.section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-.section-heading h3 { margin-top: 0; }
-.section-note { color: var(--muted); font-size: 12px; }
-.nutrition-state, .nutrition-meta, .allergen-note { color: var(--muted); font-size: 13px; line-height: 1.5; }
-.nutrition-cards { display: grid; gap: 12px; }
-.nutrition-card { padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--tint); }
-.nutrition-card h4 { margin: 0 0 12px; font-size: 14px; font-weight: 600; }
+.dish-table td { font-weight: 500; }
+.dish-table td:nth-child(2) { font-weight: 400; }
+.dish-table td.action { width: 1%; white-space: nowrap; text-align: right; }
+.dish-table tr.price td { color: var(--muted); font-weight: 400; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.nutrition-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 11px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); color: var(--text); font: inherit; font-size: 12px; cursor: pointer; transition: border-color .25s, color .25s; }
+.nutrition-btn:hover, .nutrition-btn[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
+.nutrition-btn svg { transition: transform .4s var(--ease); }
+.nutrition-btn[aria-expanded="true"] svg { transform: rotate(180deg); }
+
+/* Inline expandable detail row */
+.dish-table tr.detail td { padding: 0; border-bottom: 0; }
+.detail-grid { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .5s var(--ease); }
+.detail.open .detail-grid { grid-template-rows: 1fr; }
+.detail-inner { min-height: 0; overflow: hidden; }
+.detail-body { padding: 6px 2px 20px; opacity: 0; transition: opacity .4s .1s; }
+.detail.open .detail-body { opacity: 1; }
+
 .nutrition-values { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.nutrition-values span { padding: 9px; border-radius: 8px; background: var(--surface); font-size: 12px; line-height: 1.4; }
-.nutrition-values strong { color: var(--muted); font-weight: 500; }
-.nutrition-meta { margin: 12px 0 0; }
-.allergen-cards { display: grid; gap: 8px; }
-.allergen-card { padding: 12px 14px; border-left: 3px solid var(--accent); background: var(--tint); }
-.allergen-card strong { font-size: 13px; }
-.allergen-card p { margin: 4px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.stat { padding: 12px; border-radius: 10px; background: var(--tint); }
+.stat b { display: block; font-family: var(--serif); font-weight: 500; font-size: 24px; letter-spacing: -.01em; }
+.stat b small { margin-left: 2px; font: 400 12px var(--sans); color: var(--muted); }
+.stat span { color: var(--muted); font-size: 12px; }
+.stat.skel { height: 70px; background: linear-gradient(90deg, var(--tint) 25%, color-mix(in srgb, var(--tint) 55%, var(--surface)) 50%, var(--tint) 75%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+.detail-meta, .fineprint { margin: 12px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.allergen-note { padding-left: 10px; border-left: 2px solid var(--accent); }
+.detail-error { display: flex; align-items: center; gap: 12px; margin: 0; color: var(--danger); font-size: 13px; }
+.link-button { border: 0; background: none; padding: 0; color: var(--accent); font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; }
 .table-scroll { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
 th, td { padding: 13px 10px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }

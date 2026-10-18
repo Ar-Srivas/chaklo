@@ -85,36 +85,14 @@
 
           <button id="downloadBtn" class="secondary-button" type="button">Download image</button>
 
-          <h3>Extracted text</h3>
+          <h3>Dishes</h3>
           <div class="table-scroll">
-            <table>
-              <thead><tr><th>Original</th><th>Translation</th></tr></thead>
+            <table class="dish-table">
+              <thead><tr><th>Original</th><th>Translation</th><th><span class="sr-only">Nutrition</span></th></tr></thead>
               <tbody id="textRows"></tbody>
             </table>
           </div>
-
-          <section class="nutrition-section" aria-labelledby="nutritionHeading">
-            <div class="section-heading">
-              <h3 id="nutritionHeading">Nutrition estimates</h3>
-              <span class="section-note">Dish-name estimates</span>
-            </div>
-            <p class="nutrition-state" id="nutritionState" role="status">
-              Nutrition estimates will appear here when available.
-            </p>
-            <div class="nutrition-cards" id="nutritionCards"></div>
-          </section>
-
-          <section class="allergen-section" aria-labelledby="allergenHeading">
-            <div class="section-heading">
-              <h3 id="allergenHeading">Allergen awareness</h3>
-              <span class="section-note">Not a safety guarantee</span>
-            </div>
-            <p class="nutrition-state">
-              Ingredient and cross-contact information was not verified against
-              the restaurant recipe.
-            </p>
-            <div class="allergen-cards" id="allergenCards"></div>
-          </section>
+          <p class="fineprint">Nutrition values are rough estimates from the dish name. Ingredients and allergens are not verified, so always confirm with the restaurant.</p>
         </div>
       </div>
     </section>
