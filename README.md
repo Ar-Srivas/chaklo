@@ -4,6 +4,14 @@ Chaklo extracts text from a menu photo, translates it into Hindi or Marathi,
 and renders the translated menu while preserving prices and approximate layout.
 It can also show optional Spoonacular dish-name nutrition estimates.
 
+## Assets
+
+![Chaklo multilingual menu platform](assets/Chaklo%20Multilingual%20Menu%20Platform.png)
+
+![Chaklo demo](assets/chaklo-demo.gif)
+
+[Watch the Chaklo demo video](assets/chaklo-demo.mp4)
+
 ## Setup
 
 This project requires Python 3.11 or newer and [uv](https://docs.astral.sh/uv/).
